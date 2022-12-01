@@ -37,9 +37,7 @@ namespace SnookerBot
             private readonly string _user;
             private readonly string _nick;
             private readonly string _channel;
-
             private readonly int _maxRetries;
-
             public IRCbot(string server, int port, string user, string nick, string channel, int maxRetries = 3)
             {
                 _server = server;
@@ -80,21 +78,34 @@ namespace SnookerBot
                                     if (splitInput[0] == "PING")
                                     {
                                         string PongReply = splitInput[1];
-                                        //Console.WriteLine("->PONG " + PongReply);
                                         writer.WriteLine("PONG " + PongReply);
                                         writer.Flush();
-                                        //continue;
                                     }
                                     else if (splitInput[1] == "001")
                                     {
                                         writer.WriteLine("JOIN " + _channel);
                                         writer.Flush();
                                     }
-
+                                    
                                     else if (splitInput[1] == "PRIVMSG")
                                     {
                                         string str;
+                                        string[] getNick = inputLine.Split(new Char[] { '!' });
+                                        string nick = getNick[0];
 
+                                        if (nick == ":Cail")
+                                        {
+                                            switch (splitInput[3])
+                                            {
+                                                case ":!nick":
+                                                    writer.WriteLine("NICK " + splitInput[4]);
+                                                    writer.Flush();
+                                                break;
+                                                case ":!exit":
+                                                    System.Environment.Exit(1);
+                                                break;
+                                            }
+                                        }
                                         switch (splitInput[3])
                                         {
                                             case ":!update":
@@ -115,12 +126,14 @@ namespace SnookerBot
                                                 break;
                                             case ":!next":
                                                 var nextT = getSnookerInfo.snooker_next();
+
+                                                Console.WriteLine("MOO: " + nextT[1]);
                                                 writer.WriteLine("PRIVMSG " + _channel + " :" + nextT[1]);
                                                 writer.Flush();
                                                 break;
                                             case ":!cat":
                                                 str = getSnookerInfo.snooker_cat();
-                                                writer.WriteLine("PRIVMSG " + _channel + " :" + str);
+                                                writer.WriteLine("PRIVMSG " + _channel + " :Have a random catpic, LOOK AT IT! " + str);
                                                 writer.Flush();
                                                 break;
                                             default:

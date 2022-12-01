@@ -18,24 +18,26 @@ namespace SnookerBot
             await File.WriteAllTextAsync("./snooker_schedule.txt", data.Result);
             return "1";
         }
-
         public static List<string> snooker_upcoming() {
             string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
 
-            dynamic array = JsonConvert.DeserializeObject(snookerInfo);
+            dynamic getTournaments = JsonConvert.DeserializeObject(snookerInfo);
             List<string> tournaments = new List<string>();
-            var x = 0;
+            var x = 1;
 
-            foreach (var item in array)
+            foreach (var tournament in getTournaments)
             {
-                var endDate = DateTime.Parse(item.EndDate.ToString());
+                var endDate = DateTime.Parse(tournament.EndDate.ToString());
                 if (endDate > DateTime.Now)
                 {
-                    // var dates = ModDate(item.StartDate, item.EndDate);
-                    tournaments.Add(x + ": " + item.Name + " | " + item.StartDate + " / " + item.EndDate + " | Type: " + item.Type);
+                    string tStartDate = tournament.StartDate;
+                    string tEndDate = tournament.EndDate;
+
+                    tournaments.Add(x + ": " + tournament.Name + " | " + ModDate(tStartDate, tEndDate) + " | Type: " + tournament.Type);
+
                     x++;
                 }
-                if (x == 5) { break; }
+                if (x == 6) { break; }
             }
 
             return tournaments;
@@ -44,13 +46,13 @@ namespace SnookerBot
         {
             string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
 
-            dynamic array = JsonConvert.DeserializeObject(snookerInfo);
+            dynamic getTournaments = JsonConvert.DeserializeObject(snookerInfo);
             List<string> tournaments = new List<string>();
 
             string tCurrent = "None";
             string tNext = "None";
 
-            foreach (var tournament in array)
+            foreach (var tournament in getTournaments)
             {
                 string tName = tournament.Name;
                 string tType = tournament.Type;
@@ -74,7 +76,7 @@ namespace SnookerBot
                     // Next Tournament
                     if (StartT > DateTime.Now)
                     {
-                        tNext = tName + " " + ModDate(tStartDate, tEndDate);
+                        tNext = "Next is: " + ModDate(tStartDate, tEndDate) + " | " + tName;
                         break;
                     }
                 }
@@ -96,13 +98,12 @@ namespace SnookerBot
 
             return catURL;
         }
-
         public static string ModDate(string StartDate, string EndDate)
         {
             var StartT = DateTime.Parse(StartDate);
             var EndT = DateTime.Parse(EndDate);
 
-            if (StartT.Month == EndT.Month)
+            if (StartT.Month == EndT.Month) 
             {
                 var returnDates = StartT.Day + "-" + EndT.Day + " " + EndT.ToString("MMM");
                 return returnDates;
@@ -113,7 +114,6 @@ namespace SnookerBot
                 return returnDates;
             }
         }
-
         static async Task<string> GetDataFromAPI(string url)
         {
             var client = new HttpClient();

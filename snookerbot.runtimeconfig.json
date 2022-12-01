@@ -1,0 +1,16 @@
+{
+  "runtimeOptions": {
+    "tfm": "netcoreapp6.0",
+    "framework": {
+      "name": "Microsoft.NETCore.App",
+      "version": "3.1.0"
+    },
+    "configProperties": {
+      "System.Globalization.UseNls": true,
+      "System.Net.DisableIPv6": true,
+      "System.GC.Concurrent": false,
+      "System.Threading.ThreadPool.MinThreads": 4,
+      "System.Threading.ThreadPool.MaxThreads": 25
+    }
+  }
+}

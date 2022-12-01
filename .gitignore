@@ -1,0 +1,6 @@
+.vs/
+bin/
+obj/
+snookerbot.sln
+snookerbot.runtimeconfiguration.json
+appsettings.json
