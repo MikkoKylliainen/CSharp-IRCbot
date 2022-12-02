@@ -66,7 +66,6 @@ namespace SnookerBot
                     var StartT = DateTime.Parse(tStartDate);
                     var EndT = DateTime.Parse(tEndDate);
 
-
                     // Current Tournament
                     if (StartT <= DateTime.Now && EndT.AddSeconds(76400) > DateTime.Now)
                     {
