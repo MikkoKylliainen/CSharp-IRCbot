@@ -8,7 +8,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace SnookerBot
 {
-    public class getSnookerInfo
+    public class getSnookerInfo 
     {
         public static async Task<string> snooker_update() {
             var data = Task.Run(() => GetDataFromAPI("http://api.snooker.org/?t=5&s=2022"));

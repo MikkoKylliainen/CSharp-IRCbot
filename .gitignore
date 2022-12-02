@@ -1,6 +1,8 @@
 .vs/
+.vscode/
 bin/
 obj/
+*.csproj
 snookerbot.sln
-snookerbot.runtimeconfiguration.json
+snookerbot.runtimeconfig.json
 appsettings.json
