@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 
 namespace SnookerBot
 {
@@ -60,6 +61,7 @@ namespace SnookerBot
                         using (var reader = new StreamReader(stream))
                         using (var writer = new StreamWriter(stream))
                         {
+                            // ADD for Ident response
                             writer.WriteLine("NICK " + _nick);
                             writer.Flush();
                             writer.WriteLine(_user);
@@ -74,71 +76,96 @@ namespace SnookerBot
 
                                     // split the lines sent from the server by spaces
                                     string[] splitInput = inputLine.Split(new Char[] { ' ' });
+                                    string rawReply = "";
+                                    string writeToChan = "PRIVMSG " + _channel + " : ";
 
-                                    if (splitInput[0] == "PING")
-                                    {
-                                        string PongReply = splitInput[1];
-                                        writer.WriteLine("PONG " + PongReply);
-                                        writer.Flush();
-                                    }
-                                    else if (splitInput[1] == "001")
-                                    {
-                                        writer.WriteLine("JOIN " + _channel);
-                                        writer.Flush();
-                                    }
-                                    
-                                    else if (splitInput[1] == "PRIVMSG")
-                                    {
-                                        string str;
-                                        string[] getNick = inputLine.Split(new Char[] { '!' });
-                                        string nick = getNick[0];
+                                    if (splitInput[0] == "PING") { rawReply = "PING";  }            // Server Sent PONG
+                                    else if (splitInput[1] == "001") { rawReply = "CONNECTED"; }    // Server Sent Connected
+                                    else if (splitInput[1] == "PRIVMSG") { rawReply = "PRIVMSG"; }  // Server Sent PRIVMSG
 
-                                        if (nick == ":Cail")
-                                        {
+                                    // rawReply a.k.a reply type from server, defined above, PING to automatically reply with PONG, CONNECTED to join defined channel, PRIVMSG to handle !commands
+                                    switch (rawReply)
+                                    {
+                                        case "WHENTOURNAMENT":
+                                            writer.WriteLine("JOIN " + _channel);
+                                            break;
+                                        case "PING":
+                                            string PongReply = splitInput[1];
+                                            writer.WriteLine("PONG " + PongReply);
+                                            writer.Flush();
+                                            break;
+                                        case "CONNECTED":
+                                            writer.WriteLine("JOIN " + _channel);
+                                            writer.Flush();
+                                            break;
+                                        case "PRIVMSG":
+                                            string str;
+                                            string[] getNick = inputLine.Split(new Char[] { '!' });
+                                            string nick = getNick[0];
+
+                                            // Regex to check for an alternative !next trigger
+                                            Match regExNextT = Regex.Match(inputLine.Split(new Char[] { ':' })[2], @"\bwhen(.*)next(.*)tournament\b", RegexOptions.IgnoreCase);
+                                            if (regExNextT.Success)
+                                            {
+                                                splitInput[3] = ":!next";
+                                            }
+
+                                            // ADMIN commands
+                                            if (nick == ":Cail")
+                                            {
+                                                switch (splitInput[3])
+                                                {
+                                                    case ":!test":
+                                                        writer.WriteLine(writeToChan + "heehee");
+                                                        writer.Flush();
+                                                        break;
+                                                    case ":!nick":
+                                                        writer.WriteLine("NICK " + splitInput[4]);
+                                                        writer.Flush();
+                                                        break;
+                                                    case ":!exit":
+                                                        System.Environment.Exit(1);
+                                                        break;
+                                                }
+                                            }
+
+                                            // USER commands
                                             switch (splitInput[3])
                                             {
-                                                case ":!nick":
-                                                    writer.WriteLine("NICK " + splitInput[4]);
+                                                case ":!update":
+                                                    if (getSnookerInfo.snooker_update() != null)
+                                                    {
+                                                        writer.WriteLine("PRIVMSG " + _channel + " :Cache refreshed.");
+                                                        writer.Flush();
+                                                    }
+                                                    break;
+                                                case ":!upcoming":
+                                                    var tournaments = getSnookerInfo.snooker_upcoming();
+
+                                                    foreach (var tournament in tournaments)
+                                                    {
+                                                        writer.WriteLine("PRIVMSG " + _channel + " :" + tournament);
+                                                    }
                                                     writer.Flush();
-                                                break;
-                                                case ":!exit":
-                                                    System.Environment.Exit(1);
-                                                break;
+                                                    break;
+                                                case ":!next":
+                                                    var nextT = getSnookerInfo.snooker_next();
+
+                                                    Console.WriteLine("MOO: " + nextT[1]);
+                                                    writer.WriteLine("PRIVMSG " + _channel + " :" + nextT[1]);
+                                                    writer.Flush();
+                                                    break;
+                                                case ":!cat":
+                                                    str = getSnookerInfo.snooker_cat();
+                                                    writer.WriteLine("PRIVMSG " + _channel + " :Have a random catpic, LOOK AT IT! " + str);
+                                                    writer.Flush();
+                                                    break;
+                                                default:
+                                                    break;
                                             }
-                                        }
-                                        switch (splitInput[3])
-                                        {
-                                            case ":!update":
-                                                if (getSnookerInfo.snooker_update() != null)
-                                                {
-                                                    writer.WriteLine("PRIVMSG " + _channel + " :Cache refreshed.");
-                                                    writer.Flush();
-                                                }
-                                                break;
-                                            case ":!upcoming":
-                                                var tournaments = getSnookerInfo.snooker_upcoming();
 
-                                                foreach (var tournament in tournaments)
-                                                {
-                                                    writer.WriteLine("PRIVMSG " + _channel + " :" + tournament);
-                                                }
-                                                writer.Flush();
-                                                break;
-                                            case ":!next":
-                                                var nextT = getSnookerInfo.snooker_next();
-
-                                                Console.WriteLine("MOO: " + nextT[1]);
-                                                writer.WriteLine("PRIVMSG " + _channel + " :" + nextT[1]);
-                                                writer.Flush();
-                                                break;
-                                            case ":!cat":
-                                                str = getSnookerInfo.snooker_cat();
-                                                writer.WriteLine("PRIVMSG " + _channel + " :Have a random catpic, LOOK AT IT! " + str);
-                                                writer.Flush();
-                                                break;
-                                            default:
-                                                break;
-                                        }
+                                            // END of rawReply Switch
+                                            break;
                                     }
                                 }
                             }
