@@ -24,8 +24,8 @@ namespace SnookerBot
                 server: "irc.quakenet.org",
                 port: 6667,
                 user: "USER SnookerBot 0 * :SnookerBot",
-                nick: "JuddTrump",
-                channel: "#snooker"
+                nick: "MarkSelby",
+                channel: "#huuhaa"
             );
 
             ircBot.Start();
@@ -86,9 +86,6 @@ namespace SnookerBot
                                     // rawReply a.k.a reply type from server, defined above, PING to automatically reply with PONG, CONNECTED to join defined channel, PRIVMSG to handle !commands
                                     switch (rawReply)
                                     {
-                                        case "WHENTOURNAMENT":
-                                            writer.WriteLine("JOIN " + _channel);
-                                            break;
                                         case "PING":
                                             string PongReply = splitInput[1];
                                             writer.WriteLine("PONG " + PongReply);
@@ -116,7 +113,8 @@ namespace SnookerBot
                                                 switch (splitInput[3])
                                                 {
                                                     case ":!test":
-                                                        writer.WriteLine(writeToChan + "heehee");
+                                                        // Just for testing new stuff
+                                                        writer.WriteLine(writeToChan + "Testing");
                                                         writer.Flush();
                                                         break;
                                                     case ":!nick":
@@ -151,7 +149,6 @@ namespace SnookerBot
                                                 case ":!next":
                                                     var nextT = getSnookerInfo.snooker_next();
 
-                                                    Console.WriteLine("MOO: " + nextT[1]);
                                                     writer.WriteLine("PRIVMSG " + _channel + " :" + nextT[1]);
                                                     writer.Flush();
                                                     break;
