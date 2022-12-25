@@ -70,7 +70,8 @@ namespace SnookerBot
                                     else if (splitInput[1] == "001") { rawReply = "CONNECTED"; }    // Server Sent Connected
                                     else if (splitInput[1] == "PRIVMSG") { rawReply = "PRIVMSG"; }  // Server Sent PRIVMSG
 
-                                    // rawReply a.k.a reply type from server, defined above, PING to automatically reply with PONG, CONNECTED to join defined channel, PRIVMSG to handle !commands
+                                    // rawReply a.k.a reply type from server, defined above, PING to automatically reply with PONG, 
+                                    // CONNECTED to join defined channel, PRIVMSG to handle !commands
                                     switch (rawReply)
                                     {
                                         case "PING":
@@ -88,7 +89,9 @@ namespace SnookerBot
                                             string nick = getNick[0];
 
                                             // Regex to check for an alternative !next trigger
-                                            Match regExNextT = Regex.Match(inputLine.Split(new Char[] { ':' })[2], @"\bwhen(.*)next(.*)tournament\b", RegexOptions.IgnoreCase);
+                                            Match regExNextT = Regex.Match(inputLine.Split(
+                                                new Char[] { ':' })[2], @"\bwhen(.*)next(.*)tournament\b", RegexOptions.IgnoreCase
+                                            );
                                             if (regExNextT.Success)
                                             {
                                                 splitInput[3] = ":!next";
@@ -148,7 +151,7 @@ namespace SnookerBot
                                                 default:
                                                     var response = await getSnookerInfo.get_url_title(inputLine);
 
-                                                    // If we have an URL Title
+                                                    // If we have URL Title(s)
                                                     if (!String.IsNullOrEmpty(response))
                                                     {
                                                         writer.WriteLine(writeToChan + "Title: " + response);
