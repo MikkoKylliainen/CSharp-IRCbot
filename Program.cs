@@ -1,17 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.Sockets;
-using System.IO;
-using System.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
+﻿using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
 namespace SnookerBot
@@ -24,11 +11,11 @@ namespace SnookerBot
                 server: "irc.quakenet.org",
                 port: 6667,
                 user: "USER SnookerBot 0 * :SnookerBot",
-                nick: "MarkSelby",
-                channel: "#huuhaa"
+                nick: "JuddTrump",
+                channel: "#snooker"
             );
 
-            ircBot.Start();
+            ircBot.StartAsync();
         }
 
         public class IRCbot
@@ -48,7 +35,7 @@ namespace SnookerBot
                 _channel = channel;
                 _maxRetries = maxRetries;
             }
-            public void Start()
+            public async Task StartAsync()
             {
                 var retry = false;
                 var retryCount = 0;
@@ -79,7 +66,7 @@ namespace SnookerBot
                                     string rawReply = "";
                                     string writeToChan = "PRIVMSG " + _channel + " : ";
 
-                                    if (splitInput[0] == "PING") { rawReply = "PING";  }            // Server Sent PONG
+                                    if (splitInput[0] == "PING") { rawReply = "PING"; }            // Server Sent PONG
                                     else if (splitInput[1] == "001") { rawReply = "CONNECTED"; }    // Server Sent Connected
                                     else if (splitInput[1] == "PRIVMSG") { rawReply = "PRIVMSG"; }  // Server Sent PRIVMSG
 
@@ -114,7 +101,8 @@ namespace SnookerBot
                                                 {
                                                     case ":!test":
                                                         // Just for testing new stuff
-                                                        writer.WriteLine(writeToChan + "Testing");
+
+                                                        writer.WriteLine(writeToChan + "Testing: ");
                                                         writer.Flush();
                                                         break;
                                                     case ":!nick":
@@ -158,6 +146,14 @@ namespace SnookerBot
                                                     writer.Flush();
                                                     break;
                                                 default:
+                                                    var response = await getSnookerInfo.get_url_title(inputLine);
+
+                                                    // If we have an URL Title
+                                                    if (!String.IsNullOrEmpty(response))
+                                                    {
+                                                        writer.WriteLine(writeToChan + "Title: " + response);
+                                                        writer.Flush();
+                                                    }
                                                     break;
                                             }
 
@@ -179,4 +175,3 @@ namespace SnookerBot
         }
     }
 }
-

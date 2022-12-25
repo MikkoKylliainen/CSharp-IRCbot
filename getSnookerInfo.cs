@@ -1,16 +1,13 @@
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Security;
-using System.Security.Cryptography.X509Certificates;
-using System.Transactions;
-using static System.Net.Mime.MediaTypeNames;
+using System.Text.RegularExpressions;
 
 namespace SnookerBot
 {
-    public class getSnookerInfo 
+    public class getSnookerInfo
     {
-        public static async Task<string> snooker_update() {
+        public static async Task<string> snooker_update()
+        {
             var data = Task.Run(() => GetDataFromAPI("http://api.snooker.org/?t=5&s=2022"));
             System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
             data.Wait();
@@ -18,7 +15,9 @@ namespace SnookerBot
             await File.WriteAllTextAsync("./snooker_schedule.txt", data.Result);
             return "1";
         }
-        public static List<string> snooker_upcoming() {
+
+        public static List<string> snooker_upcoming()
+        {
             string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
 
             dynamic getTournaments = JsonConvert.DeserializeObject(snookerInfo);
@@ -42,6 +41,7 @@ namespace SnookerBot
 
             return tournaments;
         }
+
         public static List<string> snooker_next()
         {
             string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
@@ -80,6 +80,7 @@ namespace SnookerBot
                     }
                 }
             }
+
             List<string> arraytNext = new List<string>();
             arraytNext.Add(tCurrent);
             arraytNext.Add(tNext);
@@ -97,12 +98,47 @@ namespace SnookerBot
 
             return catURL;
         }
+
+        public static async Task<string> get_url_title(string title)
+        {
+            var returnInfo = "";
+            foreach (Match item in Regex.Matches(title, @"(https?):\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?"))
+            {
+                try
+                {
+                    var data = Task.Run(() => GetDataFromAPI(item.Value));
+                    System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
+                    data.Wait();
+
+                    // Regex find the Title
+                    string response = Regex.Match(data.Result, @"\<title\b[^>]*\>\s*(?<Title>[\s\S]*?)\</title\>", RegexOptions.IgnoreCase).Groups["Title"].Value;
+
+                    // Decode HTML characters to text
+                    response = System.Net.WebUtility.HtmlDecode(response);
+
+                    // ALL MATCHED URL TITLES
+                    if (!String.IsNullOrEmpty(response))
+                    {
+                        // RETURN FIRST ONE FOR NOW
+                        return response;
+                        break;
+                    }
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine("\nException Caught!");
+                    Console.WriteLine("Message :{0} ", e.Message);
+                }
+            }
+            return null;
+        }
+
         public static string ModDate(string StartDate, string EndDate)
         {
             var StartT = DateTime.Parse(StartDate);
             var EndT = DateTime.Parse(EndDate);
 
-            if (StartT.Month == EndT.Month) 
+            if (StartT.Month == EndT.Month)
             {
                 var returnDates = StartT.Day + "-" + EndT.Day + " " + EndT.ToString("MMM");
                 return returnDates;
@@ -113,6 +149,7 @@ namespace SnookerBot
                 return returnDates;
             }
         }
+
         static async Task<string> GetDataFromAPI(string url)
         {
             var client = new HttpClient();
