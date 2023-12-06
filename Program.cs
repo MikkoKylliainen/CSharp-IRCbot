@@ -1,21 +1,48 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
+
 
 namespace SnookerBot
 {
     internal class Program
     {
+        static IConfigurationRoot LoadAppSettings()
+        {
+           IConfigurationRoot appConfig = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+            if (string.IsNullOrEmpty(appConfig["IRC_Server"]) ||
+                string.IsNullOrEmpty(appConfig["IRC_Port"]) ||
+                string.IsNullOrEmpty(appConfig["IRC_User"]) ||
+                string.IsNullOrEmpty(appConfig["IRC_Nick"]) ||
+                string.IsNullOrEmpty(appConfig["IRC_Channel"]) ||
+                string.IsNullOrEmpty(appConfig["Snooker_Season"])
+                )
+            {
+                throw new InvalidOperationException("Missing app settings");
+            }
+
+            return appConfig;
+        }
+
         static void Main()
         {
+            IConfigurationRoot config = LoadAppSettings();
+
             var ircBot = new IRCbot(
-                server: "irc.quakenet.org",
-                port: 6667,
-                user: "USER SnookerBot 0 * :SnookerBot",
-                nick: "JuddTrump",
-                channel: "#snooker"
+                server: config["IRC_Server"] ?? "NoServer",
+                port: Convert.ToInt32(config["IRC_Port"]),
+                user: config["IRC_User"] ?? "NoUser",
+                nick: config["IRC_Nick"] ?? "NoNick",
+                channel: config["IRC_Channel"] ?? "#NoChannel",
+                season: Convert.ToInt32(config["Snooker_Season"])
             );
 
-            ircBot.StartAsync();
+            Task task = ircBot.StartAsync();
         }
 
         public class IRCbot
@@ -26,7 +53,8 @@ namespace SnookerBot
             private readonly string _nick;
             private readonly string _channel;
             private readonly int _maxRetries;
-            public IRCbot(string server, int port, string user, string nick, string channel, int maxRetries = 3)
+            private readonly int _snookerSeason;
+            public IRCbot(string server, int port, string user, string nick, string channel, int season, int maxRetries = 60)
             {
                 _server = server;
                 _port = port;
@@ -34,6 +62,7 @@ namespace SnookerBot
                 _nick = nick;
                 _channel = channel;
                 _maxRetries = maxRetries;
+                _snookerSeason = season;
             }
             public async Task StartAsync()
             {
@@ -57,7 +86,7 @@ namespace SnookerBot
                             while (true)
                             {
                                 string inputLine;
-                                while ((inputLine = reader.ReadLine()) != null)
+                                while ((inputLine = reader.ReadLine()!) != null)
                                 {
                                     Console.WriteLine("<- " + inputLine);
 
@@ -66,7 +95,7 @@ namespace SnookerBot
                                     string rawReply = "";
                                     string writeToChan = "PRIVMSG " + _channel + " : ";
 
-                                    if (splitInput[0] == "PING") { rawReply = "PING"; }            // Server Sent PONG
+                                    if (splitInput[0] == "PING") { rawReply = "PING"; }             // Server Sent PONG
                                     else if (splitInput[1] == "001") { rawReply = "CONNECTED"; }    // Server Sent Connected
                                     else if (splitInput[1] == "PRIVMSG") { rawReply = "PRIVMSG"; }  // Server Sent PRIVMSG
 
@@ -105,7 +134,7 @@ namespace SnookerBot
                                                     case ":!test":
                                                         // Just for testing new stuff
 
-                                                        writer.WriteLine(writeToChan + "Testing: ");
+                                                        writer.WriteLine(writeToChan + "Sod off.");
                                                         writer.Flush();
                                                         break;
                                                     case ":!nick":
@@ -122,9 +151,9 @@ namespace SnookerBot
                                             switch (splitInput[3])
                                             {
                                                 case ":!update":
-                                                    if (getSnookerInfo.snooker_update() != null)
+                                                    if (getSnookerInfo.snooker_update(_snookerSeason) != null)
                                                     {
-                                                        writer.WriteLine("PRIVMSG " + _channel + " :Cache refreshed.");
+                                                        writer.WriteLine(writeToChan + "Cache refreshed.");
                                                         writer.Flush();
                                                     }
                                                     break;
@@ -133,28 +162,41 @@ namespace SnookerBot
 
                                                     foreach (var tournament in tournaments)
                                                     {
-                                                        writer.WriteLine("PRIVMSG " + _channel + " :" + tournament);
+                                                        writer.WriteLine(writeToChan + tournament);
                                                     }
                                                     writer.Flush();
                                                     break;
                                                 case ":!next":
                                                     var nextT = getSnookerInfo.snooker_next();
 
-                                                    writer.WriteLine("PRIVMSG " + _channel + " :" + nextT[1]);
+                                                    writer.WriteLine(writeToChan + nextT[1]);
                                                     writer.Flush();
                                                     break;
                                                 case ":!cat":
-                                                    str = getSnookerInfo.snooker_cat();
-                                                    writer.WriteLine("PRIVMSG " + _channel + " :Have a random catpic, LOOK AT IT! " + str);
+                                                    str = getSnookerInfo.snookerCat();
+                                                    writer.WriteLine(writeToChan + "Have a random catpic, LOOK AT IT! " + str);
                                                     writer.Flush();
                                                     break;
                                                 default:
-                                                    var response = await getSnookerInfo.get_url_title(inputLine);
-
-                                                    // If we have URL Title(s)
-                                                    if (!String.IsNullOrEmpty(response))
+                                                    try
                                                     {
-                                                        writer.WriteLine(writeToChan + "Title: " + response);
+                                                        // #SNOOKER CHANNEL'S OWN BLOCK
+                                                        if (nick == ":amigo" || inputLine.Contains(".ru")) { break; }
+                                                        
+                                                        var response = await getSnookerInfo.get_url_title(inputLine);
+
+                                                        // If we have URL Title(s)
+                                                        if (!String.IsNullOrEmpty(response))
+                                                        {
+                                                            writer.WriteLine(writeToChan + "Title: " + response);
+                                                            writer.Flush();
+                                                        }
+                                                    }
+                                                    catch (Exception e)
+                                                    {
+                                                        // If no response
+                                                        Console.WriteLine(e.ToString());
+                                                        writer.WriteLine(writeToChan + "Title: Server sent bad reply.");
                                                         writer.Flush();
                                                     }
                                                     break;
@@ -178,3 +220,4 @@ namespace SnookerBot
         }
     }
 }
+

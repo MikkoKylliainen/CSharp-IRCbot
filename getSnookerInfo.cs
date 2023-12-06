@@ -1,14 +1,15 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 
 namespace SnookerBot
 {
     public class getSnookerInfo
     {
-        public static async Task<string> snooker_update()
+        public static async Task<string> snooker_update(int Snooker_Season = 2023)
         {
-            var data = Task.Run(() => GetDataFromAPI("http://api.snooker.org/?t=5&s=2022"));
+            var data = Task.Run(() => GetDataFromAPI("http://api.snooker.org/?t=5&s=" + Snooker_Season));
             System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
             data.Wait();
 
@@ -20,11 +21,11 @@ namespace SnookerBot
         {
             string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
 
-            dynamic getTournaments = JsonConvert.DeserializeObject(snookerInfo);
+            dynamic? getTournaments = JsonConvert.DeserializeObject(snookerInfo);
             List<string> tournaments = new List<string>();
             var x = 1;
 
-            foreach (var tournament in getTournaments)
+            foreach (var tournament in getTournaments ?? Enumerable.Empty<int>())
             {
                 var endDate = DateTime.Parse(tournament.EndDate.ToString());
                 if (endDate > DateTime.Now)
@@ -44,71 +45,78 @@ namespace SnookerBot
 
         public static List<string> snooker_next()
         {
-            string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
+            try {
+                string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
 
-            dynamic getTournaments = JsonConvert.DeserializeObject(snookerInfo);
-            List<string> tournaments = new List<string>();
+                dynamic? getTournaments = JsonConvert.DeserializeObject(snookerInfo);
+                List<string> tournaments = new List<string>();
 
-            string tCurrent = "None";
-            string tNext = "None";
+                string tCurrent = "None";
+                string tNext = "None";
 
-            foreach (var tournament in getTournaments)
-            {
-                string tName = tournament.Name;
-                string tType = tournament.Type;
-                string tStartDate = tournament.StartDate;
-                string tEndDate = tournament.EndDate;
-
-                // only select ranking tournaments and invitationals in the list
-                string[] invitationals = { "Masters", "Shanghai Masters", "Champion of Champions", "Paul Hunter Classic" };
-                if (tType == "Ranking" || Array.Find(invitationals, element => element == tName) != null)
+                foreach (var tournament in getTournaments ?? Enumerable.Empty<int>())
                 {
-                    var StartT = DateTime.Parse(tStartDate);
-                    var EndT = DateTime.Parse(tEndDate);
+                    string tName = tournament.Name;
+                    string tType = tournament.Type;
+                    string tStartDate = tournament.StartDate;
+                    string tEndDate = tournament.EndDate;
 
-                    // Current Tournament
-                    if (StartT <= DateTime.Now && EndT.AddSeconds(76400) > DateTime.Now)
+                    // only select ranking tournaments and invitationals in the list
+                    string[] invitationals = { "Masters", "Shanghai Masters", "Champion of Champions", "Paul Hunter Classic" };
+                    if (tType == "Ranking" || Array.Find(invitationals, element => element == tName) != null)
                     {
-                        tCurrent = tName + " " + ModDate(tStartDate, tEndDate);
-                    }
+                        var StartT = DateTime.Parse(tStartDate);
+                        var EndT = DateTime.Parse(tEndDate);
 
-                    // Next Tournament
-                    if (StartT > DateTime.Now)
-                    {
-                        tNext = "Next is: " + ModDate(tStartDate, tEndDate) + " | " + tName;
-                        break;
+                        // Current Tournament
+                        if (StartT <= DateTime.Now && EndT.AddSeconds(76400) > DateTime.Now)
+                        {
+                            tCurrent = tName + " " + ModDate(tStartDate, tEndDate);
+                        }
+
+                        // Next Tournament
+                        if (StartT > DateTime.Now)
+                        {
+                            tNext = "Next is: " + ModDate(tStartDate, tEndDate) + " | " + tName;
+                            break;
+                        }
                     }
                 }
-            }
 
-            List<string> arraytNext = new List<string>();
-            arraytNext.Add(tCurrent);
-            arraytNext.Add(tNext);
-            return arraytNext;
+                List<string> arraytNext = new List<string>();
+                arraytNext.Add(tCurrent);
+                arraytNext.Add(tNext);
+                return arraytNext;
+            }
+            catch (Exception e) {
+                Console.WriteLine(e.Message);
+                List<string> arraytNext = new List<string>();
+                arraytNext.Add("Error");
+                return arraytNext;
+            }
         }
-        public static string snooker_cat()
+
+        public static string snookerCat()
         {
-            var data = Task.Run(() => GetDataFromAPI("https://api.thecatapi.com/v1/images/search"));
             System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
-            data.Wait();
+            var data = Task.Run(() => GetDataFromAPI("https://api.thecatapi.com/v1/images/search"));
+            data.Wait(); 
 
             var jsonResult = data.Result.TrimStart(new char[] { '[' }).TrimEnd(new char[] { ']' });
             JObject j = JObject.Parse(jsonResult);
-            string catURL = j["url"].ToString();
+            string catURL = j["url"]!.ToString();
 
             return catURL;
         }
 
-        public static async Task<string> get_url_title(string title)
+        public static async Task<string?> get_url_title(string title)
         {
-            var returnInfo = "";
             foreach (Match item in Regex.Matches(title, @"(https?):\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?"))
             {
                 try
                 {
-                    var data = Task.Run(() => GetDataFromAPI(item.Value));
                     System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
-                    data.Wait();
+                    dynamic data = await Task.Run(() => GetDataFromAPI(item.Value));
 
                     // Regex find the Title
                     string response = Regex.Match(data.Result, @"\<title\b[^>]*\>\s*(?<Title>[\s\S]*?)\</title\>", RegexOptions.IgnoreCase).Groups["Title"].Value;
@@ -121,12 +129,10 @@ namespace SnookerBot
                     {
                         // RETURN FIRST ONE FOR NOW
                         return response;
-                        break;
                     }
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine("\nException Caught!");
                     Console.WriteLine("Message :{0} ", e.Message);
                 }
             }
@@ -153,10 +159,11 @@ namespace SnookerBot
         static async Task<string> GetDataFromAPI(string url)
         {
             var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("X-Requested-By", "MikkoBot");
             HttpResponseMessage result = await client.GetAsync(url);
             var response = await result.Content.ReadAsStringAsync();
 
             return response;
         }
     }
-}
+} 
