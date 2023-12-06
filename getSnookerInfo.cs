@@ -109,14 +109,16 @@ namespace SnookerBot
             return catURL;
         }
 
-        public static async Task<string?> get_url_title(string title)
+        public static async Task<string> get_url_title(string title)
         {
+            var returnInfo = "";
             foreach (Match item in Regex.Matches(title, @"(https?):\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?"))
             {
                 try
                 {
+                    var data = Task.Run(() => GetDataFromAPI(item.Value));
                     System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
-                    dynamic data = await Task.Run(() => GetDataFromAPI(item.Value));
+                    data.Wait();
 
                     // Regex find the Title
                     string response = Regex.Match(data.Result, @"\<title\b[^>]*\>\s*(?<Title>[\s\S]*?)\</title\>", RegexOptions.IgnoreCase).Groups["Title"].Value;
@@ -129,10 +131,12 @@ namespace SnookerBot
                     {
                         // RETURN FIRST ONE FOR NOW
                         return response;
+                        break;
                     }
                 }
                 catch (HttpRequestException e)
                 {
+                    Console.WriteLine("\nException Caught!");
                     Console.WriteLine("Message :{0} ", e.Message);
                 }
             }
