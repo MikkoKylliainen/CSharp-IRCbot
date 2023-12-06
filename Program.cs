@@ -180,9 +180,6 @@ namespace SnookerBot
                                                 default:
                                                     try
                                                     {
-                                                        // #SNOOKER CHANNEL'S OWN BLOCK
-                                                        if (nick == ":amigo" || inputLine.Contains(".ru")) { break; }
-                                                        
                                                         var response = await getSnookerInfo.get_url_title(inputLine);
 
                                                         // If we have URL Title(s)
