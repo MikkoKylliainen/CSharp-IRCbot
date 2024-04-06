@@ -62,7 +62,7 @@ namespace SnookerBot
                     string tEndDate = tournament.EndDate;
 
                     // only select ranking tournaments and invitationals in the list
-                    string[] invitationals = { "Masters", "Shanghai Masters", "Champion of Champions", "Paul Hunter Classic" };
+                    string[] invitationals = { "Masters", "World Masters", "Shanghai Masters", "Champion of Champions", "Paul Hunter Classic" };
                     if (tType == "Ranking" || Array.Find(invitationals, element => element == tName) != null)
                     {
                         var StartT = DateTime.Parse(tStartDate);
