@@ -120,7 +120,8 @@ namespace SnookerBot
                                         }
                                         else
                                         {
-                                            writer.WriteLine("AUTH SnookerBoat ARDhT3pF4k");
+                                            //writer.WriteLine("AUTH SnookerBoat ARDhT3pF4k");
+                                            writer.WriteLine("AUTH " + _authUser + " " + _authPass);
                                             writer.WriteLine("MODE " + _nick + " +x");
                                             Thread.Sleep(2000);
                                         }
