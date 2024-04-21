@@ -3,6 +3,10 @@ using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
+using static System.Net.Mime.MediaTypeNames;
+using System.IO;
+using Newtonsoft.Json.Linq;
+using System.Reflection;
 
 namespace SnookerBot
 {
@@ -117,10 +121,6 @@ namespace SnookerBot
                                         // AUTH to QuakeNet, set hidden hostmask and wait 2 seconds for mode +x to take effect
                                         if (_authUser != "NoAuthUser" && _authPass != "noAuthPass")
                                         {
-                                        }
-                                        else
-                                        {
-                                            //writer.WriteLine("AUTH SnookerBoat ARDhT3pF4k");
                                             writer.WriteLine("AUTH " + _authUser + " " + _authPass);
                                             writer.WriteLine("MODE " + _nick + " +x");
                                             Thread.Sleep(2000);
@@ -135,6 +135,7 @@ namespace SnookerBot
                                         string[] getNick = inputLine.Split(new Char[] { '!' });
                                         string nick = getNick[0];
 
+                                        // ON HOLD FOR NOW, because lightweight free server, Regexing every line tends to take some CPU
                                         // Regex to check for an alternative !next trigger
                                         // Match regExNextT = Regex.Match(inputLine.Split(
                                         //     new Char[] { ':' })[2], @"\b(when|what)(.*)next(.*)tournament\b", RegexOptions.IgnoreCase
@@ -169,6 +170,8 @@ namespace SnookerBot
                                         switch (splitInput[3])
                                         {
                                             case ":!update":
+                                                // Update snooker API file to local cache, for faster searching
+
                                                 if (getSnookerInfo.snooker_update(_snookerSeason) != null)
                                                 {
                                                     writer.WriteLine(writeToChan + "Cache refreshed.");
@@ -176,6 +179,8 @@ namespace SnookerBot
                                                 }
                                                 break;
                                             case ":!upcoming":
+                                                // List 5 upcoming tournaments/matches, ignoring the type of tournament
+
                                                 var tournaments = getSnookerInfo.snooker_upcoming();
 
                                                 foreach (var tournament in tournaments)
@@ -185,15 +190,94 @@ namespace SnookerBot
                                                 writer.Flush();
                                                 break;
                                             case ":!next":
+                                                // Get the next tournament coming
+
                                                 var nextT = getSnookerInfo.snooker_next();
 
                                                 writer.WriteLine(writeToChan + nextT[1]);
                                                 writer.Flush();
                                                 break;
                                             case ":!cat":
+                                                // Because ofcourse there has to be cats
+
                                                 str = getSnookerInfo.snookerCat();
                                                 writer.WriteLine(writeToChan + "Have a random catpic, LOOK AT IT! " + str);
                                                 writer.Flush();
+                                                break;
+                                            case ":!links":
+                                                // List links for users, "add" and "remove" commands for selected people
+                                                
+                                                var linksFile = @"./links.txt";
+
+                                                if (((nick == ":Cail") || (nick == ":Wibble")) && (splitInput.Length > 4))
+                                                {
+                                                    switch (splitInput[4])
+                                                    {
+                                                        case "add":
+                                                            try
+                                                            {
+                                                                // Writing to links.txt
+                                                                using (StreamWriter sw = File.AppendText(linksFile))
+                                                                {
+                                                                    sw.WriteLine(string.Join(" ", splitInput[5..]).ToString());
+                                                                }
+
+                                                                writer.WriteLine(writeToChan + "Link added");
+                                                                writer.Flush();
+                                                                break;
+                                                            }
+                                                            catch (FormatException e)
+                                                            {
+                                                                // Invalid input for writing
+                                                                Console.WriteLine(e.Message);
+                                                                writer.WriteLine(writeToChan + "Invalid input");
+                                                                writer.Flush();
+                                                                break;
+                                                            }
+                                                            break;
+    
+                                                        case "remove":
+                                                            try
+                                                            {
+                                                                // Removing a link by link number
+                                                                int line_to_delete = Int32.Parse(splitInput[5]);
+                                                                Console.WriteLine(line_to_delete);
+
+                                                                string removeReturn = getSnookerInfo.RemoveLineFromFile(linksFile, line_to_delete);
+
+                                                                writer.WriteLine(writeToChan + removeReturn);
+                                                                writer.Flush();
+                                                                break;
+                                                            }
+                                                            catch (FormatException e)
+                                                            {
+                                                                // Invalid range for the link number, or not found
+                                                                writer.WriteLine(writeToChan + "Invalid input");
+                                                                writer.Flush();
+                                                                Console.WriteLine(e.Message);
+                                                                break;
+                                                            }
+                                                            break;
+                                                    }
+                                                } 
+                                                else
+                                                {
+                                                    // Read lines fron links.txt
+                                                    var lines = File.ReadAllLines(linksFile);
+
+                                                    // Essential links, then loop through links.txt
+                                                    writer.WriteLine(writeToChan + "Essential links: https://www.wst.tv/ - https://www.snooker.org/ - https://cuetracker.net/");
+                                                    writer.Flush();
+
+                                                    for (var i = 0; i < lines.Length; i += 1)
+                                                    {
+                                                        var line = lines[i];
+                                                        writer.WriteLine(writeToChan + (i+1) + ": " + line);
+                                                    }
+                                                    writer.Flush();
+                                                    break;
+                                                }
+
                                                 break;
                                             default:
                                                 try

@@ -7,6 +7,7 @@ namespace SnookerBot
 {
     public class getSnookerInfo
     {
+        // Update function to refresh "cached" API call
         public static async Task<string> snooker_update(int Snooker_Season = 2023)
         {
             var data = Task.Run(() => GetDataFromAPI("http://api.snooker.org/?t=5&s=" + Snooker_Season));
@@ -17,6 +18,7 @@ namespace SnookerBot
             return "1";
         }
 
+        // List maximum of 5 upcoming tournaments, regardless of tournament type
         public static List<string> snooker_upcoming()
         {
             string snookerInfo = File.ReadAllText(@"./snooker_schedule.txt");
@@ -94,6 +96,34 @@ namespace SnookerBot
                 arraytNext.Add("Error");
                 return arraytNext;
             }
+        }
+
+        public static string RemoveLineFromFile(string filePath, int lineNumberToRemove)
+        {
+            string[] lines = File.ReadAllLines(filePath);
+            if (lineNumberToRemove < 1 || lineNumberToRemove > lines.Length)
+            {
+                Console.WriteLine("Invalid line number.");
+                return "Invalid link number";
+            }
+
+            // Create a new array to hold the lines without the one to be removed
+            string[] updatedLines = new string[lines.Length - 1];
+            int index = 0;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (i != lineNumberToRemove - 1) // Line numbers are 1-based
+                {
+                    updatedLines[index] = lines[i];
+                    index++;
+                }
+            }
+
+            // Write the updated lines back to the file
+            File.WriteAllLines(filePath, updatedLines);
+
+            return "Link removed";
         }
 
         public static string snookerCat()
