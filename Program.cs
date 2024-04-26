@@ -1,12 +1,5 @@
-﻿using System;
-using System.Net.Sockets;
-using System.Text.RegularExpressions;
+﻿using System.Net.Sockets;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
-using static System.Net.Mime.MediaTypeNames;
-using System.IO;
-using Newtonsoft.Json.Linq;
-using System.Reflection;
 
 namespace SnookerBot
 {
@@ -117,6 +110,7 @@ namespace SnookerBot
                                         writer.WriteLine("PONG " + PongReply);
                                         writer.Flush();
                                         break;
+
                                     case "CONNECTED":
                                         // AUTH to QuakeNet, set hidden hostmask and wait 2 seconds for mode +x to take effect
                                         if (_authUser != "NoAuthUser" && _authPass != "noAuthPass")
@@ -130,12 +124,17 @@ namespace SnookerBot
                                         writer.WriteLine("JOIN " + _channel);
                                         writer.Flush();
                                         break;
-                                    case "PRIVMSG":
-                                        string str;
-                                        string[] getNick = inputLine.Split(new Char[] { '!' });
-                                        string nick = getNick[0];
 
-                                        // ON HOLD FOR NOW, because lightweight free server, Regexing every line tends to take some CPU
+                                    case "PRIVMSG":
+                                        // str for upcoming text, nick and host are exracted from inputLine via different tokens
+                                        string str;
+                                        string[] getUserInfo = inputLine.Split('!', '@', ' ');
+                                        string nick = getUserInfo[0];
+                                        string host = getUserInfo[2];
+
+                                        Console.WriteLine("moi: " + nick + " - " + host);
+
+                                        /**** ON HOLD FOR NOW, because lightweight free server, Regexing every line tends to take some CPU ****/
                                         // Regex to check for an alternative !next trigger
                                         // Match regExNextT = Regex.Match(inputLine.Split(
                                         //     new Char[] { ':' })[2], @"\b(when|what)(.*)next(.*)tournament\b", RegexOptions.IgnoreCase
@@ -146,6 +145,8 @@ namespace SnookerBot
                                         // }
 
                                         // ADMIN commands
+                                        // **NOTE** I can use this with my nickname on Quakenet since it's a reserved nickname
+                                        // You should either add some auth system, or if using it on Quakenet, get the authed user host (see above where 'host' is extracted), to verify an auther user on the network
                                         if (nick == ":Cail")
                                         {
                                             switch (splitInput[3])
@@ -153,7 +154,7 @@ namespace SnookerBot
                                                 case ":!test":
                                                     // Just for testing new stuff
 
-                                                    writer.WriteLine(writeToChan + "Sod off.");
+                                                    writer.WriteLine(writeToChan + "Sod off. ");
                                                     writer.Flush();
                                                     break;
                                                 case ":!nick":
@@ -178,6 +179,7 @@ namespace SnookerBot
                                                     writer.Flush();
                                                 }
                                                 break;
+
                                             case ":!upcoming":
                                                 // List 5 upcoming tournaments/matches, ignoring the type of tournament
 
@@ -189,6 +191,7 @@ namespace SnookerBot
                                                 }
                                                 writer.Flush();
                                                 break;
+
                                             case ":!next":
                                                 // Get the next tournament coming
 
@@ -197,19 +200,21 @@ namespace SnookerBot
                                                 writer.WriteLine(writeToChan + nextT[1]);
                                                 writer.Flush();
                                                 break;
+
                                             case ":!cat":
-                                                // Because ofcourse there has to be cats
+                                                // Because of course there has to be cats
 
                                                 str = getSnookerInfo.snookerCat();
                                                 writer.WriteLine(writeToChan + "Have a random catpic, LOOK AT IT! " + str);
                                                 writer.Flush();
                                                 break;
+
                                             case ":!links":
-                                                // List links for users, "add" and "remove" commands for selected people
+                                                // List links for users, "add" and "remove" commands for selected people, here by "nick" for me, and by quakenet registered host for someone else
                                                 
                                                 var linksFile = @"./links.txt";
 
-                                                if (((nick == ":Cail") || (nick == ":Wibble")) && (splitInput.Length > 4))
+                                                if (((nick == ":Cail") || (host == "MostlyH.users.quakenet.org")) && (splitInput.Length > 4))
                                                 {
                                                     switch (splitInput[4])
                                                     {
@@ -277,16 +282,14 @@ namespace SnookerBot
                                                     writer.Flush();
                                                     break;
                                                 }
-
                                                 break;
+
                                             default:
                                                 try
                                                 {
+                                                    // Optimization check to check for "www" or "http" before passing the line forward to a function using regex
                                                     if (inputLine.Contains("www") || inputLine.Contains("http"))
                                                     {
-                                                        // #SNOOKER CHANNEL'S OWN BLOCK
-                                                        if (nick == ":amigo" || inputLine.Contains(".ru")) { break; }
-
                                                         var response = await getSnookerInfo.get_url_title(inputLine);
 
                                                         // If we have URL Title(s)

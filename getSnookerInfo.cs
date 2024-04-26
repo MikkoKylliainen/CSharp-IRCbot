@@ -156,10 +156,10 @@ namespace SnookerBot
                     // Decode HTML characters to text
                     response = System.Net.WebUtility.HtmlDecode(response);
 
-                    // ALL MATCHED URL TITLES
+                    // All matched URL titles
                     if (!String.IsNullOrEmpty(response))
                     {
-                        // RETURN FIRST ONE FOR NOW
+                        // Return first one for now
                         return response;
                         break;
                     }
