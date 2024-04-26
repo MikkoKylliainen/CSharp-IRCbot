@@ -214,7 +214,7 @@ namespace SnookerBot
                                                 
                                                 var linksFile = @"./links.txt";
 
-                                                if (((nick == ":Cail") || (host == "MostlyH.users.quakenet.org")) && (splitInput.Length > 4))
+                                                if (((nick == ":Cail") || (host == "Someguy.users.quakenet.org")) && (splitInput.Length > 4))
                                                 {
                                                     switch (splitInput[4])
                                                     {
