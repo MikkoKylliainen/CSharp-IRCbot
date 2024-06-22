@@ -126,13 +126,13 @@ namespace SnookerBot
                                         break;
 
                                     case "PRIVMSG":
-                                        // str for upcoming text, nick and host are exracted from inputLine via different tokens
+                                        // str for upcoming text, nick and host are extracted from inputLine via different tokens
                                         string str;
                                         string[] getUserInfo = inputLine.Split('!', '@', ' ');
                                         string nick = getUserInfo[0];
                                         string host = getUserInfo[2];
 
-                                        Console.WriteLine("moi: " + nick + " - " + host);
+                                        Console.WriteLine("Input: " + nick + " - " + host);
 
                                         /**** ON HOLD FOR NOW, because lightweight free server, Regexing every line tends to take some CPU ****/
                                         // Regex to check for an alternative !next trigger
@@ -145,8 +145,8 @@ namespace SnookerBot
                                         // }
 
                                         // ADMIN commands
-                                        // **NOTE** I can use this with my nickname on Quakenet since it's a reserved nickname
-                                        // You should either add some auth system, or if using it on Quakenet, get the authed user host (see above where 'host' is extracted), to verify an auther user on the network
+                                        // ***NOTE*** I can use this with my nickname on Quakenet since I have a reserved nickname
+                                        // You should either add some auth system, or if using it on Quakenet, get the authed user host (see above where 'host' is extracted), to verify an authed user on the network
                                         if (nick == ":Cail")
                                         {
                                             switch (splitInput[3])
@@ -214,7 +214,7 @@ namespace SnookerBot
                                                 
                                                 var linksFile = @"./links.txt";
 
-                                                if (((nick == ":Cail") || (host == "Someguy.users.quakenet.org")) && (splitInput.Length > 4))
+                                                if (((nick == ":Cail") || (host == "Someone.users.quakenet.org")) && (splitInput.Length > 4))
                                                 {
                                                     switch (splitInput[4])
                                                     {
@@ -290,6 +290,9 @@ namespace SnookerBot
                                                     // Optimization check to check for "www" or "http" before passing the line forward to a function using regex
                                                     if (inputLine.Contains("www") || inputLine.Contains("http"))
                                                     {
+                                                        // #SNOOKER CHANNEL'S OWN BLOCK
+                                                        if (nick == ":Someguy" || inputLine.Contains(".ru")) { break; }
+
                                                         var response = await getSnookerInfo.get_url_title(inputLine);
 
                                                         // If we have URL Title(s)

@@ -8,7 +8,7 @@ namespace SnookerBot
     public class getSnookerInfo
     {
         // Update function to refresh "cached" API call
-        public static async Task<string> snooker_update(int Snooker_Season = 2023)
+        public static async Task<string> snooker_update(int Snooker_Season = 2024)
         {
             var data = Task.Run(() => GetDataFromAPI("http://api.snooker.org/?t=5&s=" + Snooker_Season));
             System.Net.ServicePointManager.ServerCertificateValidationCallback = (senderX, certificate, chain, sslPolicyErrors) => { return true; };
@@ -166,7 +166,7 @@ namespace SnookerBot
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine("\nException Caught!");
+                    Console.WriteLine("\nException Caught");
                     Console.WriteLine("Message :{0} ", e.Message);
                 }
             }
@@ -192,12 +192,22 @@ namespace SnookerBot
 
         static async Task<string> GetDataFromAPI(string url)
         {
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("X-Requested-By", "MikkoBot");
-            HttpResponseMessage result = await client.GetAsync(url);
-            var response = await result.Content.ReadAsStringAsync();
+            try
+            {
+                var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("X-Requested-By", "Taneli");
+                HttpResponseMessage result = await client.GetAsync(url);
+                var response = await result.Content.ReadAsStringAsync();
 
-            return response;
+                return response;
+            }
+            catch (HttpRequestException e)
+            {
+                Console.WriteLine("\nException Caught!");
+                Console.WriteLine("Message :{0} ", e.Message);
+
+                return "Err";
+            }
         }
     }
 } 
